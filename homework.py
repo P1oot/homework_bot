@@ -5,16 +5,34 @@ import time
 import telegram
 from http import HTTPStatus
 import exceptions
+# Костыль для прохождения тестов
+from const import PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID
 import const
-from sh_logger import make_logger
+# from sh_logger import make_logger
+import logging
+from logging import StreamHandler
 
-logger = make_logger()
+logging.basicConfig(
+    level=logging.DEBUG,
+    filename='program.log',
+    format='%(asctime)s, %(levelname)s, %(message)s, %(name)s'
+)
+logger = logging.getLogger(__name__)
+handler = StreamHandler()
+formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
+# logger = make_logger()
+# Для прохождения тестов логорование должно создаваться в этом файле
 
 
 def send_message(bot: telegram.Bot, message: str) -> None:
     """Отправка сообщения в Telegram."""
     try:
-        bot.send_message(const.TELEGRAM_CHAT_ID, message)
+        bot.send_message(TELEGRAM_CHAT_ID, message)
         logger.info('Успешная отправка сообщения: %s', message)
     except Exception as error:
         logger.error('Сбой при отправке сообщения: %s', error)
@@ -31,14 +49,13 @@ def get_api_answer(current_timestamp: int) -> dict:
     )
     if homework_response.status_code != HTTPStatus.OK:
         logger.error(
-            f'Ошибка доступа к эндпоинту: {homework_response.status_code}\n'
-            f'Ответ: {homework_response.text}'
+            'Ошибка доступа к эндпоинту: %s', homework_response.status_code
         )
         raise exceptions.APIAnswerException('Ошибка доступа к эндпоинту')
     else:
         logger.debug(
             f'Статус кода: {homework_response.status_code}\n'
-            f'Ответ: {homework_response.text}'
+            f'Ответ: {homework_response.json()}'
         )
         return homework_response.json()
 
@@ -79,9 +96,9 @@ def parse_status(homework: list) -> str:
 def check_tokens() -> bool:
     """Проверка доступности токенов."""
     tokens = [
-        const.PRACTICUM_TOKEN,
-        const.TELEGRAM_TOKEN,
-        const.TELEGRAM_CHAT_ID
+        PRACTICUM_TOKEN,
+        TELEGRAM_TOKEN,
+        TELEGRAM_CHAT_ID
     ]
     if not all(tokens):
         logger.critical('Одна из переменных окружения отсутствует')
@@ -96,7 +113,7 @@ def main() -> None:
     else:
         sys.exit('Программа принудительно остановленна')
 
-    bot = telegram.Bot(token=const.TELEGRAM_TOKEN)
+    bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
     old_message = ''
 
