@@ -6,8 +6,8 @@ import telegram
 from http import HTTPStatus
 import exceptions
 # Костыль для прохождения тестов
-from const import PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID
-import const
+from const import (PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID,
+                   RETRY_TIME, ENDPOINT, HEADERS, HOMEWORK_STATUSES)
 # from sh_logger import make_logger
 import logging
 from logging import StreamHandler
@@ -43,8 +43,8 @@ def get_api_answer(current_timestamp: int) -> dict:
     timestamp = current_timestamp
     params = {'from_date': timestamp}
     homework_response = requests.get(
-        const.ENDPOINT,
-        headers=const.HEADERS,
+        ENDPOINT,
+        headers=HEADERS,
         params=params
     )
     if homework_response.status_code != HTTPStatus.OK:
@@ -84,7 +84,7 @@ def parse_status(homework: list) -> str:
         logger.error('Отсутсвие ожидаемого ключа: %s', error)
         raise KeyError('Отсутсвие ожидаемого ключа: %s', error)
     try:
-        verdict = const.HOMEWORK_STATUSES[homework_status]
+        verdict = HOMEWORK_STATUSES[homework_status]
     except KeyError as error:
         logger.error('Незадокументированный статус домашней работы: %s', error)
         raise KeyError(
@@ -100,10 +100,10 @@ def check_tokens() -> bool:
         TELEGRAM_TOKEN,
         TELEGRAM_CHAT_ID
     ]
-    if not all(tokens):
+    check = all(tokens)
+    if not check:
         logger.critical('Одна из переменных окружения отсутствует')
-        return False
-    return True
+    return check
 
 
 def main() -> None:
@@ -134,7 +134,7 @@ def main() -> None:
                 send_message(bot, message)
             old_message = message
         finally:
-            time.sleep(const.RETRY_TIME)
+            time.sleep(RETRY_TIME)
 
 
 if __name__ == '__main__':
